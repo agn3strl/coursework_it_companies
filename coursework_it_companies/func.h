@@ -36,6 +36,17 @@ struct itcompany {
 typedef struct itcompany IT;
 
 /**
+ * Структура для хранения динамического массива IT-компаний
+ * Заменяет тройку (IT**, int*, int*) на единый объект
+ */
+struct itarray {
+    IT* data;       /**< Указатель на динамический массив компаний */
+    int count;      /**< Текущее количество элементов в массиве */
+    int capacity;   /**< Вместимость массива (выделенная память) */
+};
+typedef struct itarray ITArray;
+
+/**
  * Преобразование сферы деятельности в строковое представление
  * @param sphere значение перечисления Sphere
  * @return указатель на строку с названием сферы деятельности
@@ -69,33 +80,29 @@ void print_company(const IT* company);
 void print_all_companies(const IT companies[], int count);
 
 /**
- * Сохранение базы данных в текстовый файл
- * @param companies массив структур IT
- * @param count количество записей для сохранения
- * @param filename имя файла для сохранения
- * @return 0 при успешном сохранении, -1 при ошибке
+ * Сохраняет все компании в текстовый файл
+ * @param companies Указатель на структуру с массивом компаний
+ * @param filename Имя файла для сохранения
+ * @return 0 при успехе, -1 при ошибке
  */
+
 int save_companies(const IT companies[], int count, const char* filename);
 
 /**
- * Загрузка базы данных из текстового файла
- * @param companies указатель на указатель на массив структур IT
- * @param count указатель на переменную с количеством записей
- * @param size указатель на переменную с размером массива
- * @param filename имя файла для загрузки
- * @return 0 при успешной загрузке, -1 при ошибке
+ * Загружает компании из текстового файла
+ * @param companies Указатель на структуру с массивом компаний
+ * @param filename Имя файла для загрузки
+ * @return Количество загруженных записей или -1 при ошибке
  */
-int load_companies(IT** companies, int* count, int* size, const char* filename);
+int load_companies(ITArray* companies, const char* filename);
 
 /**
- * Генерация тестовых записей для заполнения базы данных
- * @param companies указатель на указатель на массив структур IT
- * @param count указатель на переменную с количеством записей
- * @param size указатель на переменную с размером массива
- * @param n количество тестовых записей для добавления
- * @return 0 при успешном добавлении, -1 при ошибке
+ * Добавляет тестовые данные в массив
+ * @param companies Указатель на структуру с массивом компаний
+ * @param n Количество тестовых записей для добавления
+ * @return 0 при успехе, -1 при ошибке
  */
-int test(IT** companies, int* count, int* size, int n);
+int test(ITArray* companies, int n);
 
 /**
  * Функция сравнения для сортировки компаний
@@ -124,5 +131,26 @@ int search_by_name(const IT companies[], int count, const char* searchname);
  * @return количество найденных компаний
  */
 int search_by_capandrate(const IT companies[], int count, double min_capitalization, int rate_choice);
+
+/**
+ * Инициализирует структуру ITArray нулевыми значениями
+ * @param array Указатель на инициализируемую структуру
+ */
+void init_itarray(ITArray* array);
+
+/**
+ * Расширяет динамический массив компаний при необходимости
+ * Выделяет память блоками по 10 элементов для эффективности
+ * @param companies указатель на структуру ITArray для расширения
+ * @param min_capacity минимальная требуемая вместимость массива
+ * @return 0 при успешном расширении, -1 при ошибке выделения памяти
+ */
+int expand_array(ITArray* companies, int min_capacity);
+
+/**
+ * Освобождает память, занятую массивом в ITArray
+ * @param array Указатель на инициализируемую структуру
+ */
+void free_itarray(ITArray* array);
 
 #endif FUNC_H

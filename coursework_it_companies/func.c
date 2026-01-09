@@ -24,6 +24,12 @@ const char* rate_string(Rate rate)
     }
 }
 
+void init_itarray(ITArray* array) {
+    array->data = NULL;
+    array->count = 0;
+    array->capacity = 0;
+}
+
 void input_company(IT* company) {
     printf("_____Ввод данных о компании_____\n");
     printf("Название компании: ");
@@ -76,7 +82,7 @@ int save_companies(const IT companies[], int count, const char* filename)
     file = fopen(filename, "w");
 
     if (file == NULL) {
-        printf("Ошибка открытия файла для записи.\n");
+        printf("Ошибка открытия файла '%s' для записи.\n", filename);
         return -1;
     }
 
@@ -88,75 +94,115 @@ int save_companies(const IT companies[], int count, const char* filename)
         fprintf(file, "Количество сотрудников: %d\n", companies[i].number_of_employees);
         fprintf(file, "Рыночная капитализация: %.2lf\n", companies[i].market_cap);
         fprintf(file, "Рейтинг работодателя: %d\n", companies[i].rate);
-    }
-
-    fclose(file);
-
-    return 0;
-}
-
-int test(IT** companies, int* count, int* size, int n)
-{
-    srand(time(NULL));
-
-    int curr = *count;
-    int start_size = *size;
-
-    if (curr + n > *size) {
-        int new_size = *size + (curr + n - *size);
-        IT* temp = realloc(*companies, new_size * sizeof(IT));
-        if (temp == NULL) {
-            printf("Ошибка выделения памяти для тестовых данных!\n");
+        if (ferror(file)) {
+            printf("Ошибка записи в файл '%s'.\n", filename);
+            fclose(file);
             return -1;
         }
-        *companies = temp;
-        *size = new_size;
-        printf("Размер массива увеличен c %d до %d записей.\n", start_size, *size);
     }
 
-    for (int i = 0; i < n; i++) {
-        sprintf((*companies)[curr + i].name, "Company%d", rand() % 100 + 1);
-        (*companies)[curr + i].sphere = (Sphere)(rand() % 4);
-        (*companies)[curr + i].year_of_foundation = 1990 + rand() % 30;
-        (*companies)[curr + i].number_of_employees = 50 + rand() % 9950;
-        (*companies)[curr + i].market_cap = 10.0 + (rand() % 990);
-        (*companies)[curr + i].rate = (Rate)(rand() % 3);
+    if (fclose(file) != 0) {
+        printf("Ошибка закрытия файла '%s'.\n", filename);
+        return -1;
     }
 
     return 0;
 }
 
-int load_companies(IT** companies, int* count, int* size, const char* filename)
+int expand_array(ITArray* companies, int min_capacity)
+{
+    int new_capacity = companies->capacity;
+    if (new_capacity == 0) {
+        new_capacity = 10;
+    }
+
+    while (new_capacity < min_capacity) {
+        new_capacity += 10; 
+    }
+
+    IT* new_data = realloc(companies->data, new_capacity * sizeof(IT));
+    if (new_data == NULL) {
+        printf("Ошибка выделения памяти.\n");
+        return -1;
+    }
+
+    companies->data = new_data;
+    int old_capacity = companies->capacity;
+    companies->capacity = new_capacity;
+
+    if (old_capacity != new_capacity) {
+        printf("Размер массива увеличен с %d до %d записей.\n",
+            old_capacity, new_capacity);
+    }
+
+    return 0;
+}
+
+int test(ITArray* companies, int n)
+{
+    if (n <= 0) {
+        printf("Некорректное количество тестовых данных: %d\n", n);
+        return -1;
+    }
+
+    srand(time(NULL));
+
+    if (companies->count + n > companies->capacity) {
+        if (expand_array(companies, companies->count + n) != 0) {
+            return -1;
+        }
+    }
+
+    int curr = companies->count;
+
+    for (int i = 0; i < n; i++) {
+        sprintf(companies->data[curr + i].name, "Company%d", rand() % 100 + 1);
+        companies->data[curr + i].sphere = (Sphere)(rand() % 4);
+        companies->data[curr + i].year_of_foundation = 1990 + rand() % 30;
+        companies->data[curr + i].number_of_employees = 50 + rand() % 9950;
+        companies->data[curr + i].market_cap = 10.0 + (rand() % 990);
+        companies->data[curr + i].rate = (Rate)(rand() % 3);
+    }
+
+    companies->count += n;
+
+    return 0;
+}
+
+int load_companies(ITArray* companies, const char* filename)
 {
     FILE* file = fopen(filename, "r");
     if (file == NULL) {
-        printf("Ошибка открытия файла для чтения.\n");
+        printf("Ошибка открытия файла '%s' для чтения.\n", filename);
         return -1;
     }
 
     int file_record_count = 0;
     char buffer[256];
 
-    rewind(file);
     while (fgets(buffer, sizeof(buffer), file) != NULL) {
         if (strstr(buffer, "Название:") != NULL) {
             file_record_count++;
         }
     }
 
-    if (*count + file_record_count > *size) {
-        int needed = (*count + file_record_count) - *size;
-        int new_size = *size + needed;
+    if (ferror(file)) {
+        printf("Ошибка чтения файла '%s'.\n", filename);
+        fclose(file);
+        return -1;
+    }
 
-        IT* temp = realloc(*companies, new_size * sizeof(IT));
-        if (temp == NULL) {
-            printf("Ошибка выделения памяти для загрузки данных!\n");
+    if (file_record_count == 0) {
+        printf("Файл '%s' не содержит данных в правильном формате.\n", filename);
+        fclose(file);
+        return 0;
+    }
+
+    if (companies->count + file_record_count > companies->capacity) {
+        if (expand_array(companies, companies->count + file_record_count) != 0) {
             fclose(file);
             return -1;
         }
-        *companies = temp;
-        *size = new_size;
-        printf("Размер массива увеличен с %d до %d записей для загрузки файла.\n", *size - needed, *size);
     }
 
     rewind(file);
@@ -187,21 +233,30 @@ int load_companies(IT** companies, int* count, int* size, const char* filename)
             fgets(buffer, sizeof(buffer), file);
             sscanf(buffer, "Рейтинг работодателя: %d", (int*)&temp.rate);
 
-            (*companies)[*count] = temp;
-            (*count)++;
-            loaded++;
+            if (companies->count < companies->capacity) {
+                companies->data[companies->count] = temp;
+                companies->count++;
+                loaded++;
+            }
+            else {
+                printf("Ошибка: переполнение массива при загрузке\n");
+                break;
+            }
         }
     }
 
-    fclose(file);
-
-    if (loaded == 0) {
-        printf("Файл не содержит данных в правильном формате.\n");
+    if (ferror(file)) {
+        printf("Ошибка чтения файла '%s'.\n", filename);
+        fclose(file);
         return -1;
     }
 
-    printf("Загружено %d компаний из файла.\n", loaded);
-    return 0;
+    if (fclose(file) != 0) {
+        printf("Ошибка закрытия файла '%s'.\n", filename);
+        return -1;
+    }
+
+    return loaded;
 }
 
 int comparator(const void* a, const void* b) {
@@ -268,4 +323,13 @@ int search_by_capandrate(const IT companies[], int count, double min_capitalizat
     }
 
     return found;
+}
+
+void free_itarray(ITArray* array) {
+    if (array->data != NULL) {
+        free(array->data);
+        array->data = NULL;
+    }
+    array->count = 0;
+    array->capacity = 0;
 }

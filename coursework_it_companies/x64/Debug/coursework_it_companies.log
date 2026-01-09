@@ -1,5 +1,2 @@
-﻿  func.c
-C:\Users\agnit\source\repos\coursework_it_companies\coursework_it_companies\func.c(100,11): warning C4244: функция: преобразование "time_t" в "unsigned int", возможна потеря данных
-C:\Users\agnit\source\repos\coursework_it_companies\coursework_it_companies\func.c(25,1): warning C4715: rate_string: значение возвращается не при всех путях выполнения
-C:\Users\agnit\source\repos\coursework_it_companies\coursework_it_companies\func.c(16,1): warning C4715: sphere_string: значение возвращается не при всех путях выполнения
+﻿  it_companies.c
   coursework_it_companies.vcxproj -> C:\Users\agnit\source\repos\coursework_it_companies\x64\Debug\coursework_it_companies.exe
